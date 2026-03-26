@@ -1,4 +1,4 @@
-    const express = require('express');
+const express = require('express');
 
 const router = express.Router();
 
@@ -9,7 +9,8 @@ router.get('/', getTasks);
 router.get('/:id', getTask);
 router.patch('/:id', updateTask);
 router.delete('/expires', checkExpiredTask);
-router.delete('/', deleteTasks);
 router.delete('/:id', deleteTask);
+router.delete('/', deleteTasks);
+
 
 module.exports = router;

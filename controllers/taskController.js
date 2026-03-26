@@ -1,11 +1,20 @@
 const Task = require("../models/Task");
 
 //create task
+const validateMongoID = (id) => {
+    // MongoDB IDs are 24 character hex strings
+    return /^[0-9a-fA-F]{24}$/.test(id);
+};
 
 const createTask = async(req, res) => {
     try{
         const{title, duration} = req.body;
-
+        if(!title || typeof title !== "string" || title.trim() === ''){
+            return res.status(400).json({error:"Title is required and must be a non-empty string"});
+        }
+        if(duration < 0 || duration > 1440 || duration === null || typeof duration !== "number" || duration === undefined){
+            return res.status(400).json({error:"Duration must be a number between 1 and 1440 minutes"})
+        }
         const expiresAt =new Date(Date.now() + duration * 60 * 1000);
         console.log(req.body);
         const task = await Task.create({
@@ -16,7 +25,7 @@ const createTask = async(req, res) => {
         res.status(201).json(task);
     }
     catch(error){
-        res.status(400).json({error: error.message});
+        res.status(500).json({error: error.message});
         }
     };
 
@@ -25,10 +34,39 @@ const updateTask = async(req, res) => {
 
         const id = req.params.id;
 
+        if (!validateMongoID(id)) {
+            return res.status(400).json({
+                error: "Invalid task ID format"
+            });
+        }
+
+        const allowedUpdate = ['completed', 'duration'];
+
+        const updates = {};
+        for(let field of allowedUpdate){
+        if( req.body[field] !== undefined ){
+            updates[field] = req.body[field];
+        }
+        }
+
+        if(Object.keys(updates).length === 0){
+            return res.status(400).json({error: `only these fields can be updated ${allowedUpdate.join(', ')}`});
+        }
+
+        if(updates.duration === undefined || typeof updates.duration !== 'number' ){
+            return res.status(400).json({error: 'duration need to be non empty number only'});
+        }
+
+        if(updates.completed === undefined || typeof updates.completed !== 'boolean'){
+            return res.status(400).json({error:"Completed must be true or false"})
+        }
+
+
+
         const updateTask = await Task.findByIdAndUpdate(
             id,
-            req.body,
-            { new: true }
+            updates,
+            { new: true, runValidators: true }
         );
 
         if(!updateTask){
@@ -39,7 +77,7 @@ const updateTask = async(req, res) => {
     }
 
     catch (error){
-        res.status(400).json({error:error.message});
+        res.status(500).json({error:error.message});
     }
 
 };
@@ -66,7 +104,7 @@ const getTask = async(req, res) => {
         res.json(task);
     }
     catch(error){
-        res.status(400).json({error: error.message});
+        res.status(500).json({error: error.message});
     }
 };
 
@@ -76,7 +114,7 @@ const deleteTasks = async(req, res) => {
         res.json(deleteAll); 
     }
     catch(error){
-        res.status(400).json({error:error.message});
+        res.status(500).json({error:error.message});
     }
 };
 
@@ -93,7 +131,7 @@ const deleteTask = async(req, res) => {
         res.json({message: "Task deleted successfully", deletedTask});
     }
     catch(error){
-        res.status(400).json({error: error.message});
+        res.status(500).json({error: error.message});
     }
 };
 
@@ -106,10 +144,34 @@ const deleteExpiredTasks = async () => {
             expiresAt: { $lt: now }
         });
 
+        if(expiredTasks.length > 0){
+            console.log(`Found ${expiredTasks.length} expired task(s)`);
+            //shows which task are expired.
+
+            expiredTasks.forEach(task => {
+                console.log(` - ${task.title} is expired at ${task.expiresAt}`);
+            })
+        }
+
+        // if you want to delete expired tasks then
+
+
+        setTimeout(() => {
+            if(expiredTasks.length > 0){
+            Task.deleteMany({
+                completed: false,
+                expiresAt: {$lt: now}
+            })
+            console.log(`Deleted ${expiredTasks.length} expired Tasks`)
+        }
+        }, 1000 )
+
+        
+        /*
         for (let task of expiredTasks) {
             console.log(`Task failed: ${task.title}`);
-            await Task.findByIdAndDelete(task._id);
-        }
+            await Task.findByIdAndDelete(task._id); 
+        }*/
 
         return expiredTasks;
     } catch (error) {
