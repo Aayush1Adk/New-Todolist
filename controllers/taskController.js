@@ -45,7 +45,7 @@ const updateTask = async (req, res) => {
         });
     }
 
-    const allowedUpdate = ["completed", "duration"];
+    const allowedUpdate = ["completed", "duration", "title"];
 
     const updates = {};
     for (let field of allowedUpdate) {
@@ -58,6 +58,12 @@ const updateTask = async (req, res) => {
         return res.status(400).json({
         error: `only these fields can be updated ${allowedUpdate.join(", ")}`,
         });
+    }
+
+    if (
+        updates.title === undefined && typeof updates.duration !== "string" && updates.title.trim() === '') 
+        {
+        return res.status(400).json({ error: "Title need to be non empty and string only" });
     }
 
     if (

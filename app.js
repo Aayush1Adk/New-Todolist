@@ -1,4 +1,5 @@
 const express = require('express');
+const cors = require('cors');
 const app = express();
 
 require('dotenv').config();
@@ -15,6 +16,7 @@ setInterval(async () => {
 }, 60000);
 
 //middleware
+app.use(cors()); // Enable CORS for all routes
 app.use(express.json());
 
 const taskRoutes = require('./Routes/taskRoutes');
