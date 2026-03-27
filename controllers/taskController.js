@@ -64,7 +64,7 @@ const updateTask = async (req, res) => {
 
     // Validate title format - only letters, numbers, spaces, basic punctuation
 const titleRegex = /^[a-zA-Z0-9\s\-.,!?'"()&]+$/;
-if (!titleRegex.test(title.trim())) {
+if (updates.title !== undefined && !titleRegex.test(updates.title.trim())) {
     return res.status(400).json({ 
         error: "Title can only contain letters, numbers, spaces, and basic punctuation" 
     });
