@@ -1,7 +1,4 @@
-// Use the deployed backend as a fallback when the Vercel env var is missing.
-const API_URL = (
-  import.meta.env.VITE_API_URL || 'https://new-todolist-qdcg.onrender.com/api'
-).replace(/\/$/, '');
+const API_URL = 'https://new-todolist-qdcg.onrender.com/api';
 
 /**
  * Helper function to make API calls
