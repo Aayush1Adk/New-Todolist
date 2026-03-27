@@ -10,9 +10,7 @@ const taskSchema = new mongoose.Schema(
 
     duration: {
       type: Number,
-      default: 0,
-      required: true,
-      trim: true,
+      required: true
     },
 
     completed: {

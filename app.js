@@ -17,7 +17,7 @@ setInterval(async () => {
 //middleware
 app.use(express.json());
 
-const taskRoutes = require('./routes/taskRoutes');
+const taskRoutes = require('./Routes/taskRoutes');
 app.use('/api/tasks', taskRoutes);
 
 app.get('/', (req, res) => {
