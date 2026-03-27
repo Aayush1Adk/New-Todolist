@@ -9,6 +9,12 @@ const validateMongoID = (id) => {
 const createTask = async (req, res) => {
     try {
     const { title, duration } = req.body;
+    
+    // Validate title exists
+    if (!title || typeof title !== 'string') {
+        return res.status(400).json({ error: "Title is required and must be a string" });
+    }
+    
     // Validate title format - only letters, numbers, spaces, basic punctuation
 const titleRegex = /^[a-zA-Z0-9\s\-.,!?'"()&]+$/;
 if (!titleRegex.test(title.trim())) {
@@ -84,16 +90,16 @@ if (updates.title !== undefined && !titleRegex.test(updates.title.trim())) {
         }
     }
 
-    const updateTask = await Task.findByIdAndUpdate(id, updates, {
+    const taskResult = await Task.findByIdAndUpdate(id, updates, {
         returnDocument: 'after',
         runValidators: true,
     });
 
-    if (!updateTask) {
+    if (!taskResult) {
         return res.status(404).json({ error: "Task not Found" });
     }
 
-    res.json(updateTask);
+    res.json(taskResult);
     } catch (error) {
     res.status(500).json({ error: error.message });
     }
