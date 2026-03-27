@@ -11,14 +11,22 @@ function TaskForm({ onTaskAdded }) {
   // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault() // Prevent page reload
+    const parsedDuration = Number(duration)
     
     // Validation
     if (!title.trim()) {
-      setError('Please enter a task title')
-      return
-    }
+  setError('Please enter a task title')
+  return
+}
 
-    if (duration < 1 || duration > 1440) {
+// Add this NEW validation for format
+const titleRegex = /^[a-zA-Z0-9\s\-.,!?'"()&]+$/;
+if (!titleRegex.test(title.trim())) {
+  setError('Title can only contain letters, numbers, spaces, and basic punctuation')
+  return
+}
+
+    if (!Number.isFinite(parsedDuration) || parsedDuration < 1 || parsedDuration > 1440) {
       setError('Duration must be between 1 and 1440 minutes')
       return
     }
@@ -28,7 +36,7 @@ function TaskForm({ onTaskAdded }) {
       setError(null)
 
       // Call API to create task
-      const newTask = await createTask(title, parseInt(duration))
+      const newTask = await createTask(title.trim(), parsedDuration)
 
       // Pass new task back to parent (App.jsx)
       onTaskAdded(newTask)

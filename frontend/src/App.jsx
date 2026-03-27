@@ -29,33 +29,75 @@ function App() {
     fetchTasks()
   }, [])
 
-  // Auto-refresh every 30 seconds
+  // Refresh only when the next task reaches an important timer point
   useEffect(() => {
-    const interval = setInterval(() => {
-      console.log('Auto-refreshing tasks...')
-      fetchTasks()
-    }, 30000) // 30 seconds
+    if (tasks.length === 0) {
+      return undefined
+    }
 
-    // Cleanup interval when component unmounts
-    return () => clearInterval(interval)
-  }, [])
+    const now = Date.now()
+    let nextRefreshAt = null
+
+    tasks.forEach((task) => {
+      if (task.completed) {
+        return
+      }
+
+      // Check deletion scheduled time
+      if (task.deleteScheduledAt) {
+        const deleteTime = new Date(task.deleteScheduledAt).getTime() + 50000 + 1000
+        if (deleteTime > now && (!nextRefreshAt || deleteTime < nextRefreshAt)) {
+          nextRefreshAt = deleteTime
+        }
+        return
+      }
+
+      // Check expiration time
+      if (task.expiresAt) {
+        const expireTime = new Date(task.expiresAt).getTime() + 1500
+        if (expireTime > now && (!nextRefreshAt || expireTime < nextRefreshAt)) {
+          nextRefreshAt = expireTime
+        }
+
+        // Also check if already expired - schedule refresh 50s after expiration
+        const expiredAt = new Date(task.expiresAt).getTime()
+        if (expiredAt < now) {
+          const deleteTime = expiredAt + 50000 + 1000
+          if (deleteTime > now && (!nextRefreshAt || deleteTime < nextRefreshAt)) {
+            nextRefreshAt = deleteTime
+          }
+        }
+      }
+    })
+
+    if (!nextRefreshAt) {
+      return undefined
+    }
+
+    const timeout = setTimeout(() => {
+      console.log('Smart refresh triggered')
+      fetchTasks()
+    }, Math.max(nextRefreshAt - now, 0))
+
+    return () => clearTimeout(timeout)
+  }, [tasks])
 
   // Handle adding new task (called from TaskForm)
   const handleTaskAdded = (newTask) => {
     // Add the new task to the list instantly
-    setTasks([newTask, ...tasks])
+    setTasks((currentTasks) => [newTask, ...currentTasks])
   }
 
-  // Handle task completion (called from TaskItem)
-  const handleTaskCompleted = (updatedTask) => {
-    setTasks(tasks.map(task => 
+  // Handle task updates (called from TaskItem)
+  const handleTaskUpdated = (updatedTask) => {
+    setTasks((currentTasks) => currentTasks.map(task => 
       task._id === updatedTask._id ? updatedTask : task
     ))
   }
 
   // Handle task deletion (called from TaskItem)
   const handleTaskDeleted = (taskId) => {
-    setTasks(tasks.filter(task => task._id !== taskId))
+    setTasks((currentTasks) => currentTasks.filter(task => task._id !== taskId))
   }
 
   // Handle delete all tasks
@@ -107,7 +149,7 @@ function App() {
             <>
                 <TaskList 
                 tasks={tasks} 
-                onTaskCompleted={handleTaskCompleted}
+                onTaskUpdated={handleTaskUpdated}
                 onTaskDeleted={handleTaskDeleted}
             />
 

@@ -29,8 +29,6 @@ app.get('/', (req, res) => {
 //database connection
 connectDB();
 
-
-
 const PORT = 3000;
 
 app.listen(PORT, () => {

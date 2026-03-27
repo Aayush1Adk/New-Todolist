@@ -1,6 +1,6 @@
 import TaskItem from './TaskItem'
 
-function TaskList({ tasks, onTaskCompleted, onTaskDeleted }) {
+function TaskList({ tasks, onTaskUpdated, onTaskDeleted }) {
   if (tasks.length === 0) {
     return null // Let App.jsx handle empty state
   }
@@ -15,7 +15,7 @@ function TaskList({ tasks, onTaskCompleted, onTaskDeleted }) {
         <TaskItem
           key={task._id}
           task={task}
-          onTaskCompleted={onTaskCompleted}
+          onTaskUpdated={onTaskUpdated}
           onTaskDeleted={onTaskDeleted}
         />
       ))}

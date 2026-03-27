@@ -22,6 +22,10 @@ const taskSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+    deleteScheduledAt: {
+    type: Date,
+    default: null,
+    }
   },
 
   {

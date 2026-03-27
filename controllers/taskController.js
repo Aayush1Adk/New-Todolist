@@ -9,11 +9,13 @@ const validateMongoID = (id) => {
 const createTask = async (req, res) => {
     try {
     const { title, duration } = req.body;
-    if (!title || typeof title !== "string" || title.trim() === "") {
-        return res
-        .status(400)
-        .json({ error: "Title is required and must be a non-empty string" });
-    }
+    // Validate title format - only letters, numbers, spaces, basic punctuation
+const titleRegex = /^[a-zA-Z0-9\s\-.,!?'"()&]+$/;
+if (!titleRegex.test(title.trim())) {
+    return res.status(400).json({ 
+        error: "Title can only contain letters, numbers, spaces, and basic punctuation" 
+    });
+}
     if (
         duration < 0 || duration > 1440 || duration === null || typeof duration !== "number" || duration === undefined
     ) {
@@ -60,26 +62,30 @@ const updateTask = async (req, res) => {
         });
     }
 
-    if (
-        updates.title === undefined && typeof updates.duration !== "string" && updates.title.trim() === '') 
-        {
-        return res.status(400).json({ error: "Title need to be non empty and string only" });
+    // Validate title format - only letters, numbers, spaces, basic punctuation
+const titleRegex = /^[a-zA-Z0-9\s\-.,!?'"()&]+$/;
+if (!titleRegex.test(title.trim())) {
+    return res.status(400).json({ 
+        error: "Title can only contain letters, numbers, spaces, and basic punctuation" 
+    });
+}
+
+    if (updates.duration !== undefined) {
+        if (typeof updates.duration !== 'number' || updates.duration < 1 || updates.duration > 1440) {
+            return res.status(400).json({ error: 'Duration must be a number between 1 and 1440 minutes' });
+        }
+        // Recompute expiresAt when duration is updated
+        updates.expiresAt = new Date(Date.now() + updates.duration * 60 * 1000);
     }
 
-    if (
-        updates.duration === undefined && typeof updates.duration !== "number") 
-        {
-        return res.status(400).json({ error: "duration need to be non empty number only" });
-    }
-
-    if (
-        updates.completed === undefined && typeof updates.completed !== "boolean") 
-        {
-        return res.status(400).json({ error: "Completed must be true or false" });
+    if (updates.completed !== undefined) {
+        if (typeof updates.completed !== 'boolean') {
+            return res.status(400).json({ error: 'Completed must be true or false' });
+        }
     }
 
     const updateTask = await Task.findByIdAndUpdate(id, updates, {
-        new: true,
+        returnDocument: 'after',
         runValidators: true,
     });
 
@@ -150,32 +156,35 @@ const deleteExpiredTasks = async () => {
         completed: false,
         expiresAt: { $lt: now },
     });
-
-    if (expiredTasks.length > 0) {
-        console.log(`${expiredTasks.length} expired tasks found and scheduled for deletion`);
-      //shows which task are expired.
-
-        expiredTasks.forEach((task) => {
-        console.log(` - ${task.title} is expired at ${task.expiresAt} and will be deleted after 50 second`);
+if (expiredTasks.length > 0) {
+    console.log(`${expiredTasks.length} expired tasks found and scheduled for deletion`);
+    
+    // Delete EACH task with its OWN 50-second timer
+    expiredTasks.forEach(async (task) => {
+    try {
+        // Mark when deletion is scheduled (so frontend knows)
+        const now = new Date();
+        await Task.findByIdAndUpdate(task._id, {
+            deleteScheduledAt: now,
         });
+        console.log(`Scheduled deletion for ${task.title} at ${now}`);
 
-      // if you want to delete expired tasks then
-        await new Promise((resolve) => {
+        // Now wait 50 seconds and delete
         setTimeout(async () => {
             try {
-                await Task.deleteMany({
-                    completed: false,
-                    expiresAt: { $lt: now },
-            });
-            console.log(`Deleted ${expiredTasks.length} expired Tasks`);
-            resolve();
+                const deleted = await Task.findByIdAndDelete(task._id);
+                if (deleted) {
+                    console.log(`✓ Deleted: ${task.title}`);
+                }
             } catch (error) {
-                console.error("Error deleting tasks:", error);
-                resolve();
+                console.error(`Error deleting ${task._id}:`, error);
             }
         }, 50000);
-        });
+    } catch (error) {
+        console.error(`Error scheduling deletion for ${task._id}:`, error);
     }
+});
+}
     /*
         for (let task of expiredTasks) {
             console.log(`Task failed: ${task.title}`);
